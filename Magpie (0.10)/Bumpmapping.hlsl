@@ -79,7 +79,7 @@ float3 Pass1(float2 pos)
 	bumplum += max_color;
 	bumplum /= max(max_color, 0.001);
 	
-	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2*scale*luma),-c11*max(3*scale,2),c11*3);
+	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2*scale*luma),-c11*max(3*scale,2),c11*max(3*scale,2));
 	
 	return max(c11, 0);
 }

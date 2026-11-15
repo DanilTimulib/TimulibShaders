@@ -62,7 +62,7 @@ float4 mainImage(VertData v_in) : TARGET
 	bumplum += max_color;
 	bumplum /= max(max_color, 0.001);
 	
-	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2.0*scale*luma),-c11*max(3.0*scale,2.0),c11*3.0);
+	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2.0*scale*luma),-c11*max(3.0*scale,2.0),c11*max(3.0*scale,2.0));
 	
 	return float4(max(c11, 0.0), 1.0);
 }
