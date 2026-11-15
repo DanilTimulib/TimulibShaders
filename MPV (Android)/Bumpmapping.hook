@@ -1,0 +1,65 @@
+/*
+   Bumpmapping Shader
+   
+   Copyright (C) 2019 guest(r)
+   Edit and Port by Danil Timulib
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
+//!HOOK MAIN
+//!BIND HOOKED
+//!DESC Bumpmapping
+
+#define EMBOSS 1.0
+
+vec3 GetWeight(vec3 dif1)
+{
+    return mix(vec3(1.0), vec3(0.7)*dif1 + vec3(0.3), 0.75);
+}
+
+vec4 hook() {
+    vec3 c11 = HOOKED_tex(HOOKED_pos).rgb;
+    
+    float max_color = max(c11.r, max(c11.g, c11.b));
+    
+    float luma = dot(c11, vec3(0.2126, 0.7152, 0.0722));
+    luma = abs(luma * 2.0 - 1.0);
+    luma = mix(0.5, 1.0, luma);
+    
+    vec2 inputPt = HOOKED_pt;
+    
+    vec3 c21 = HOOKED_tex(HOOKED_pos + vec2( inputPt.x,  0.0)).rgb;
+    vec3 c12 = HOOKED_tex(HOOKED_pos + vec2( 0.0,  inputPt.y)).rgb;
+    vec3 c22 = HOOKED_tex(HOOKED_pos + vec2( inputPt.x,  inputPt.y)).rgb;
+    vec3 c00 = HOOKED_tex(HOOKED_pos - vec2( inputPt.x,  inputPt.y)).rgb;
+    vec3 c10 = HOOKED_tex(HOOKED_pos - vec2( 0.0,  inputPt.y)).rgb;
+    vec3 c01 = HOOKED_tex(HOOKED_pos - vec2( inputPt.x,  0.0)).rgb;
+    
+    float scale = sqrt((HOOKED_size.x * HOOKED_size.y) / 2073600.0);
+    
+    vec3 w00 = GetWeight(clamp(vec3(2.25)*abs(c00-c22)/(c00+c22+vec3(0.25)),0.0,1.0));
+    vec3 w01 = GetWeight(clamp(vec3(2.25)*abs(c01-c21)/(c01+c21+vec3(0.25)),0.0,1.0));
+    vec3 w10 = GetWeight(clamp(vec3(2.25)*abs(c10-c12)/(c10+c12+vec3(0.25)),0.0,1.0));
+    
+    vec3 b11 = (w00*(c00-c22) + w01*(c01-c21) + w10*(c10-c12));
+    float bumplum = dot(b11, vec3(0.2126, 0.7152, 0.0722));
+    bumplum += max_color;
+    bumplum /= max(max_color, 0.001);
+    
+    c11 = clamp(mix(c11,c11*vec3(bumplum),-EMBOSS*2.0*scale*luma),-c11*max(vec3(3.0*scale),2.0),c11*vec3(3.0));
+    
+    return vec4(max(c11, 0.0), 1.0);
+}

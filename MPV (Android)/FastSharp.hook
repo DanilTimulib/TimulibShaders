@@ -1,0 +1,49 @@
+// Created by Danil Timulib
+
+//!HOOK OUTPUT
+//!BIND HOOKED
+//!DESC FastSharp
+
+#define amount 1.0
+
+vec4 hook() {
+    vec3 color = HOOKED_tex(HOOKED_pos).rgb;
+    
+    float max_color = max(color.r, max(color.g, color.b));
+    
+    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    
+    luma = abs(luma * 2.0 - 1.0);
+    
+    vec2 inputPt = HOOKED_pt;
+    
+    vec3 s = vec3(0.0);
+    
+    s += HOOKED_tex(HOOKED_pos + vec2( inputPt.x,  0.0)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2(-inputPt.x,  0.0)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2( 0.0,  inputPt.y)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2( 0.0, -inputPt.y)).rgb;
+    
+    s += HOOKED_tex(HOOKED_pos + vec2( inputPt.x,  inputPt.y)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2(-inputPt.x,  inputPt.y)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2( inputPt.x, -inputPt.y)).rgb;
+    s += HOOKED_tex(HOOKED_pos + vec2(-inputPt.x, -inputPt.y)).rgb;
+    
+    vec3 sharp = color - (s / 8.0);
+    
+    float sharplum = dot(sharp, vec3(0.2126, 0.7152, 0.0722));
+    
+    float scale = sqrt((HOOKED_size.x * HOOKED_size.y) / 2073600.0);
+    
+    float clampSharp = max(0.025 / scale, 0.001);
+    
+    sharplum = clamp(sharplum, -clampSharp, clampSharp);
+    
+    sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+    
+    sharplum /= max(max_color, 0.001);
+    
+    color = mix(color, color * vec3(sharplum), amount * (1.0 - luma));
+    
+    return vec4(max(color, 0.0), 1.0);
+}

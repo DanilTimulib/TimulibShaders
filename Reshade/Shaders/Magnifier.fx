@@ -1,0 +1,236 @@
+// Created by mhgar https://github.com/mhgar/ReShade-Magnifier
+// Edit by Danil Timulib
+
+uniform float2 DrawPosition <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1.0;
+	ui_step = 0.001;
+	ui_tooltip = "The position on your on screen where the magnifier will draw (does not work in when the magnifier is set to fullscreen).";
+> = float2(0.5, 0.5);
+
+uniform float2 MagnifyPosition <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1.0;
+	ui_step = 0.001;
+	ui_tooltip = "The position on your on screen that the magnifier will magnify (you'll probably want to leave this at (0.5, 0.5)).";
+> = float2(0.5, 0.5);
+
+uniform int Shape <
+	ui_type = "combo";
+	ui_type = "combo";
+	ui_items = "Circle\0Rectangle\0Fullscreen\0";
+	ui_tooltip = "Choose the shape of the magnifier.";
+> = 0;
+
+uniform int Filtering <
+	ui_type = "combo";
+	ui_items = "Linear\0Point\0";
+	ui_tooltip = "Choose either linear or no filtering for the output image.";
+> = 0;
+
+uniform float amount <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1.0;
+	ui_step = 0.001;
+	ui_label = "Magnifier Sharpness";
+	ui_tooltip = "Sharpness Intensity Magnifier (Only Linear)";
+> = 1.0;
+
+uniform float all_amount <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1.0;
+	ui_step = 0.001;
+	ui_label = "Full Sharpness";
+	ui_tooltip = "Sharpness Intensity Full Screen (Except Magnifier)";
+> = 1.0;
+
+uniform float UI_CircleRadius <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1000.0;
+	ui_step = 1.0;
+	ui_tooltip = "The radius in pixels of the magnifier when it is drawn as a circle.";
+> = 375.0;
+
+uniform float2 RectangleHalfExtent <
+	ui_type = "drag";
+	ui_min = 0.0;
+	ui_max = 1000.0;
+	ui_step = 1.0;
+	ui_tooltip = "The half size of the magnifier in pixels when it is drawn as a rectangle.";
+> = float2(300.0, 200.0);
+
+uniform float ZoomLevel <
+	ui_type = "drag";
+	ui_min = 1.0; 
+	ui_max = 10.0;
+	ui_step = 0.01;
+	ui_tooltip = "How much the magnifier will scale things.";
+> = 3.0;
+
+uniform float CircleFeathering <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1000.0;
+	ui_step = 1.0;
+	ui_tooltip = "Size of feathered edges in pixels, only works for the circle setting right now.";
+> = 26.0;
+
+uniform float MagnifierOpacity <
+	ui_type = "drag";
+	ui_min = 0.0; 
+	ui_max = 1.0;
+	ui_step = 0.001;
+	ui_tooltip = "How much opacity the magnifier has.";
+> = 1.0;
+
+#include "ReShade.fxh"
+
+#define MODE_CIRCLE 0
+#define MODE_RECTANGLE 1
+#define MODE_FULLSCREEN 2
+#define FILTER_LINEAR 0
+#define FILTER_POINT 1
+
+sampler2D pointBuffer {
+	Texture   = ReShade::BackBufferTex;
+	MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = POINT;
+	AddressU  = BORDER;
+	AddressV  = BORDER;
+};
+
+sampler BackBuffer {Texture = ReShade::BackBufferTex; MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = LINEAR;};
+
+float2 uv_to_screen(float2 uv) { return float2(uv.x * ReShade::ScreenSize.x, uv.y * ReShade::ScreenSize.y); }
+bool outside_bounds(float2 p) { return p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0; }
+
+float circle_feathering_amt(float feather_size, float2 offset, float circle_radius) {
+	if (feather_size <= 0.0) return 0.0;
+
+	float magnitude = sqrt(offset.x * offset.x + offset.y * offset.y);
+	float startRadius = circle_radius - feather_size;
+	
+	if (magnitude >= circle_radius) return 1.0;	
+	if (magnitude <= startRadius) return 0.0;
+	
+	float falloff = (magnitude - startRadius) / feather_size;
+	
+	return falloff * falloff; // Squared falloff instead of linear
+}
+
+bool is_in_circle(float2 p, float2 centre, float radius) {
+	return (p.x - centre.x) * (p.x - centre.x) + 
+	       (p.y - centre.y) * (p.y - centre.y) <=
+		   radius * radius;
+}
+
+bool is_in_rect(float2 p, float2 centre, float2 half_extent) {
+	return abs(p.x - centre.x) <= half_extent.x && abs(p.y - centre.y) <= half_extent.y;
+}
+
+float4 PS_Magnifier(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET {
+	float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
+	float CircleRadius = UI_CircleRadius * scale;
+	scale = 1.0 / ZoomLevel;
+	
+	// Don't respect the user defined magnifier position if fullscreen has been selected.
+	float2 draw_pos = Shape == MODE_FULLSCREEN ? float2(0.5, 0.5) : DrawPosition;
+	
+	// Decide whether this pixel is within the drawing area of the magnifier.
+	bool magnifiy = (Shape == MODE_CIRCLE && is_in_circle(uv_to_screen(uv), uv_to_screen(draw_pos), CircleRadius)) ||
+					(Shape == MODE_RECTANGLE && is_in_rect(uv_to_screen(uv), uv_to_screen(draw_pos), RectangleHalfExtent)) ||
+					(Shape == MODE_FULLSCREEN);	
+	
+	if (magnifiy) {
+		// Essentially offset from the magnifier and take a pixel to magnify (and there's also some scaling stuff, too).
+		float2 offset = uv - draw_pos;
+		float2 take_pos = MagnifyPosition + offset * scale;
+		
+		if (outside_bounds(take_pos)) {
+			return float4(0.0, 0.0, 0.0, 1.0);
+		} else {
+			// Refactor once rectangular feathering works
+			float2 inputPt = BUFFER_PIXEL_SIZE;
+			float4 behind_pixel = tex2Dlod(BackBuffer, float4(uv, 0.0, 0.0));
+			float max_color = max(behind_pixel.r, max(behind_pixel.g, behind_pixel.b));
+			float luma = dot(behind_pixel.rgb, float3(0.2126, 0.7152, 0.0722));
+			luma = abs(luma * 2.0 - 1.0);
+			float3 s = 0;
+			s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2( 0.0,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2( 0.0, -inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+			float3 sharp = behind_pixel.rgb - (s / 8.0);
+			float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+			float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
+			float clampSharp = max(0.025 / scale, 0.001);
+			sharplum = clamp(sharplum, -clampSharp, clampSharp);
+			sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);	
+			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, amount * (1.0 - luma));
+			behind_pixel = max(behind_pixel, 0.0);
+			float opacity = (Shape == MODE_CIRCLE ? circle_feathering_amt(CircleFeathering, uv_to_screen(offset), CircleRadius) : 0.0);
+			float4 LINEAR = tex2Dlod(BackBuffer, float4(take_pos, 0.0, 0.0));
+			max_color = max(LINEAR.r, max(LINEAR.g, LINEAR.b));
+			luma = dot(LINEAR.rgb, float3(0.2126, 0.7152, 0.0722));
+			luma = abs(luma * 2.0 - 1.0);
+			s = 0;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2( 0.0,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2( 0.0, -inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2( inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2(-inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2( inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+			s += tex2Dlod(BackBuffer, float4(take_pos + float2(-inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+			sharp = LINEAR.rgb - (s / 8.0);
+			sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+			sharplum = clamp(sharplum, -clampSharp, clampSharp);
+			sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);	
+			LINEAR = lerp(LINEAR, LINEAR * sharplum, amount * (1.0 - luma));
+			return lerp(behind_pixel, lerp(Filtering == FILTER_LINEAR ? max(LINEAR, 0.0) : tex2Dlod(pointBuffer, float4(take_pos, 0.0, 0.0)), behind_pixel, opacity), MagnifierOpacity);
+		}
+	} else {
+		float2 inputPt = BUFFER_PIXEL_SIZE;
+		float4 color = tex2Dlod(BackBuffer, float4(uv, 0.0, 0.0));
+		float max_color = max(color.r, max(color.g, color.b));
+		float luma = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+		luma = abs(luma * 2.0 - 1.0);
+		float3 s = 0;
+		s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2( 0.0,  inputPt.y), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2( 0.0, -inputPt.y), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2( inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+		s += tex2Dlod(BackBuffer, float4(uv + float2(-inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+		float3 sharp = color.rgb - (s / 8.0);
+		float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+		float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
+		float clampSharp = max(0.025 / scale, 0.001);
+		sharplum = clamp(sharplum, -clampSharp, clampSharp);
+		sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+		sharplum /= max(max_color, 0.001);
+		color = lerp(color, color * sharplum, amount * (1.0 - luma));
+		return max(color, 0.0);
+	}
+}
+
+technique Magnifier {
+	pass {
+		VertexShader = PostProcessVS;
+		PixelShader = PS_Magnifier;
+	}
+}

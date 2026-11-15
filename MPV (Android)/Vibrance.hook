@@ -1,0 +1,48 @@
+/**
+  Vibrance
+  by Christian Cann Schuldt Jensen ~ CeeJay.dk
+  Edit and Port by Danil Timulib
+ 
+  Vibrance intelligently boosts the saturation of pixels so pixels that had little color get a larger boost than pixels that had a lot.
+  This avoids oversaturation of pixels that were already very saturated.
+
+  History:
+
+  Version 1.0 by Ceejay.dk
+  - Original 
+  Version 1.1 by CeeJay.dk
+  - Introduced RBG balance to help colorblind users
+  Version 1.1.1
+  - Minor UI improvements for Reshade 3.x
+ */
+
+//!HOOK MAIN
+//!BIND HOOKED
+//!DESC Vibrance
+
+#define Vibrance 1.0
+
+vec4 hook()
+{
+	vec3 color = HOOKED_tex(HOOKED_pos).rgb;
+	vec3 orig = color;
+	
+	float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+	
+	vec3 chroma = color - vec3(luma);
+	
+	float max_color = max(chroma.r, max(chroma.g, chroma.b));
+	float min_color = min(chroma.r, min(chroma.g, chroma.b));
+	
+	float color_saturation = max_color - min_color;
+	
+	max_color = max(color.r, max(color.g, color.b));
+	
+	color = mix(vec3(luma), color, 1.0 + max(Vibrance * (1.0 - color_saturation), 0.0));
+	
+	color -= orig;
+	color += vec3(max_color);
+	color /= max(vec3(max_color), 0.001);
+	
+	return vec4(orig * color, 1.0);
+}
