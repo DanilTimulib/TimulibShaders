@@ -7,11 +7,9 @@ uniform float amount <
 	ui_label = "Sharpness intensity";
 > = 1.0;
 
-sampler BackBuffer {Texture = ReShade::BackBufferTex; MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = LINEAR;};
-
 float3 PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 {	
-	float3 color = tex2Dlod(BackBuffer, float4(texcoord, 0.0, 0.0)).rgb;
+	float3 color = tex2Dlod(ReShade::BackBuffer, float4(texcoord, 0.0, 0.0)).rgb;
 	
 	float max_color = max(color.r, max(color.g, color.b));
 	
@@ -23,15 +21,15 @@ float3 PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 	
 	float3 s = 0;
 	
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2( 0.0,  inputPt.y), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2( 0.0, -inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2( 0.0,  inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2( 0.0, -inputPt.y), 0.0, 0.0)).rgb;
 	
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2( inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2(-inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2( inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
-	s += tex2Dlod(BackBuffer, float4(texcoord + float2(-inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2( inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2(-inputPt.x,  inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2( inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
+	s += tex2Dlod(ReShade::BackBuffer, float4(texcoord + float2(-inputPt.x, -inputPt.y), 0.0, 0.0)).rgb;
 	
 	float3 sharp = color - (s / 8.0);
 	
