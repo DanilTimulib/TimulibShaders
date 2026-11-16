@@ -21,6 +21,10 @@ Texture2D OUTPUT;
 //!FILTER LINEAR
 SamplerState sam;
 
+//!SAMPLER
+//!FILTER POINT
+SamplerState sam1;
+
 //!PASS 1
 //!STYLE PS
 //!IN INPUT
@@ -28,8 +32,6 @@ SamplerState sam;
 float4 Pass1(float2 pos)
 {
 	float3 color = INPUT.SampleLevel(sam, pos, 0).rgb;
-	
-	float max_color = max(color.r, max(color.g, color.b));
 	
 	float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
 	
@@ -53,6 +55,10 @@ float4 Pass1(float2 pos)
 	
 	float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
 	
+	float3 colorPoint = INPUT.SampleLevel(sam1, pos, 0).rgb;
+	
+	float max_color = max(colorPoint.r, max(colorPoint.g, colorPoint.b));
+	
 	float2 outputSize = GetOutputSize();
 	
 	float scale = sqrt((outputSize.x * outputSize.y) / 2073600);
@@ -65,7 +71,13 @@ float4 Pass1(float2 pos)
 	
 	sharplum /= max(max_color, 0.001);
 	
-	color = lerp(color, color * sharplum, amount * (1 - luma));
+	color -= colorPoint;
+	
+	color += max_color;
+	
+	color /= max(max_color, 0.001);
+	
+	color = lerp(colorPoint * color, colorPoint * sharplum, amount * (1 - luma));
 	
 	return float4(max(color, 0), 1);
 }
