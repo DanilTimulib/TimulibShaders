@@ -1,5 +1,5 @@
 // Created by theagentd https://web.archive.org/web/20180927181721/http://www.java-gaming.org/index.php?topic=35123.0
-// Port by Danil Timulib
+// Port and Edit by Danil Timulib
 
 //!MAGPIE EFFECT
 //!VERSION 4
@@ -11,8 +11,12 @@ Texture2D INPUT;
 Texture2D OUTPUT;
 
 //!SAMPLER
-//!FILTER LINEAR
+//!FILTER POINT
 SamplerState sam;
+
+//!SAMPLER
+//!FILTER LINEAR
+SamplerState sam1;
 
 //!PASS 1
 //!STYLE PS
@@ -32,6 +36,10 @@ float4 cubic(float v)
 
 float4 Pass1(float2 pos)
 {
+	float4 color = INPUT.SampleLevel(sam, pos, 0);
+	
+	float max_color = max(color.r, max(color.g, color.b));
+	
 	float2 texSize = GetOutputSize();
 	float2 invTexSize = GetOutputPt();
 	
@@ -50,13 +58,17 @@ float4 Pass1(float2 pos)
     	
 	offset *= invTexSize.xxyy;
  	
-	float4 sample0 = INPUT.SampleLevel(sam, offset.xz, 0);
-	float4 sample1 = INPUT.SampleLevel(sam, offset.yz, 0);
-	float4 sample2 = INPUT.SampleLevel(sam, offset.xw, 0);
-	float4 sample3 = INPUT.SampleLevel(sam, offset.yw, 0);
+	float4 sample0 = INPUT.SampleLevel(sam1, offset.xz, 0);
+	float4 sample1 = INPUT.SampleLevel(sam1, offset.yz, 0);
+	float4 sample2 = INPUT.SampleLevel(sam1, offset.xw, 0);
+	float4 sample3 = INPUT.SampleLevel(sam1, offset.yw, 0);
 	
 	float sx = s.x / (s.x + s.y);
 	float sy = s.z / (s.z + s.w);
 	
-	return lerp(lerp(sample3, sample2, sx), lerp(sample1, sample0, sx), sy);
+	float4 Bicub = lerp(lerp(sample3, sample2, sx), lerp(sample1, sample0, sx), sy);
+	Bicub -= color;
+	Bicub += max_color;
+	Bicub /= max(max_color, 0.001);
+	return color * Bicub;
 }
