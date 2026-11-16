@@ -50,6 +50,33 @@ float MagnifyPosition_Y;
 int Shape;
 
 //!PARAMETER
+//!LABEL Filtering Point
+// Choose either linear or no filtering for the output image.
+//!DEFAULT 0
+//!MIN 0
+//!MAX 1
+//!STEP 1
+int Filtering;
+
+//!PARAMETER
+//!LABEL Magnifier Sharpness
+// Sharpness Intensity Magnifier (Only Linear)
+//!DEFAULT 1
+//!MIN 0
+//!MAX 1
+//!STEP 0.01
+float amount;
+
+//!PARAMETER
+//!LABEL Full Sharpness
+// Sharpness Intensity Full Screen (Except Magnifier)
+//!DEFAULT 1
+//!MIN 0
+//!MAX 1
+//!STEP 0.01
+float all_amount;
+
+//!PARAMETER
 //!LABEL CircleRadius
 // The radius in pixels of the magnifier when it is drawn as a circle.
 //!DEFAULT 375
@@ -123,6 +150,8 @@ SamplerState sam1;
 #define MODE_CIRCLE 0
 #define MODE_RECTANGLE 1
 #define MODE_FULLSCREEN 2
+#define FILTER_LINEAR 0
+#define FILTER_POINT 1
 
 //!PASS 1
 //!STYLE PS
@@ -164,6 +193,29 @@ float4 Pass1(float2 pos)
 			return float4(0, 0, 0, 1);
 		} else {
 			float4 behind_pixel = INPUT.SampleLevel(sam, pos, 0);
+			float max_color = max(behind_pixel.r, max(behind_pixel.g, behind_pixel.b));
+			float luma = dot(behind_pixel.rgb, float3(0.2126, 0.7152, 0.0722));
+			luma = abs(luma * 2 - 1);
+			float2 inputPt = GetInputPt();
+			float3 s = 0;
+			s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  0), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x,  0), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2( 0,  inputPt.y), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2( 0, -inputPt.y), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  inputPt.y), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x,  inputPt.y), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2( inputPt.x, -inputPt.y), 0).rgb;
+			s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x, -inputPt.y), 0).rgb;
+			float3 sharp = behind_pixel.rgb - (s / 8);
+			float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+			float2 inputSize = GetInputSize();
+			float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
+			float clampSharp = max(0.025 / scale, 0.001);
+			sharplum = clamp(sharplum, -clampSharp, clampSharp);
+			sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);
+			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, all_amount * (1 - luma));
+			behind_pixel = max(behind_pixel, 0);
 
 			float opacity = 0;
 			if (Shape == MODE_CIRCLE && CircleFeathering > 0) {
@@ -181,16 +233,64 @@ float4 Pass1(float2 pos)
 				}
 			}
 
-			float4 LINEAR = INPUT.SampleLevel(sam1, take_pos, 0);
-			float4 POINT = INPUT.SampleLevel(sam, take_pos, 0);
-			float max_color = max(POINT.r, max(POINT.g, POINT.b));
-			LINEAR -= POINT;
-			LINEAR += max_color;
-			LINEAR /= max(max_color, 0.001);
+			float4 magnifiedPixel;
+			if (Filtering == FILTER_LINEAR) {
+				float4 LINEAR = INPUT.SampleLevel(sam1, take_pos, 0);
+				float luma = dot(LINEAR.rgb, float3(0.2126, 0.7152, 0.0722));
+				luma = abs(luma * 2.0 - 1.0);
+				float2 inputPt = GetInputPt();
+				float3 s = 0;
+				s += INPUT.SampleLevel(sam1, take_pos + float2( inputPt.x,  0), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2(-inputPt.x,  0), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2( 0,  inputPt.y), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2( 0, -inputPt.y), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2( inputPt.x,  inputPt.y), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2(-inputPt.x,  inputPt.y), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2( inputPt.x, -inputPt.y), 0).rgb;
+				s += INPUT.SampleLevel(sam1, take_pos + float2(-inputPt.x, -inputPt.y), 0).rgb;
+				float3 sharp = LINEAR.rgb - (s / 8);
+				float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+				float4 POINT = INPUT.SampleLevel(sam, take_pos, 0);
+				float max_color = max(POINT.r, max(POINT.g, POINT.b));
+				float2 inputSize = GetInputSize();
+				float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
+				float clampSharp = max(0.025 / scale, 0.001);
+				sharplum = clamp(sharplum, -clampSharp, clampSharp);
+				sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+				sharplum /= max(max_color, 0.001);
+				magnifiedPixel = lerp(LINEAR, POINT * sharplum, amount * (1 - luma));
+				magnifiedPixel = max(magnifiedPixel, 0);
+			} else {
+				magnifiedPixel = INPUT.SampleLevel(sam, take_pos, 0);
+			}
 
-			return lerp(behind_pixel, lerp(POINT * LINEAR, behind_pixel, opacity), MagnifierOpacity);
+			float4 mixed = lerp(behind_pixel, lerp(magnifiedPixel, behind_pixel, opacity), MagnifierOpacity);
+			return mixed;
 		}
 	} else {
-		return INPUT.SampleLevel(sam, pos, 0);
+		float2 inputPt = GetInputPt();
+		float4 color = INPUT.SampleLevel(sam, pos, 0);
+		float max_color = max(color.r, max(color.g, color.b));
+		float luma = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+		luma = abs(luma * 2.0 - 1.0);
+		float3 s = 0;
+		s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  0), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x,  0), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2( 0,  inputPt.y), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2( 0, -inputPt.y), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  inputPt.y), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x,  inputPt.y), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2( inputPt.x, -inputPt.y), 0).rgb;
+		s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x, -inputPt.y), 0).rgb;
+		float3 sharp = color.rgb - (s / 8);
+		float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
+		float2 inputSize = GetInputSize();
+		float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
+		float clampSharp = max(0.025 / scale, 0.001);
+		sharplum = clamp(sharplum, -clampSharp, clampSharp);
+		sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+		sharplum /= max(max_color, 0.001);
+		color = lerp(color, color * sharplum, all_amount * (1 - luma));
+		return max(color, 0);
 	}
 }
