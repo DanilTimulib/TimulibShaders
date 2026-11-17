@@ -32,7 +32,7 @@ float4 MBPS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 	prevLum -= currLum;
 	prevLum += max_color;
 	prevLum /= max(max_color, 0.001);
-	return float4(curr.rgb * prevLum, curr.a);
+	return curr * prevLum;
 }
 
 float4 FinalPS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target

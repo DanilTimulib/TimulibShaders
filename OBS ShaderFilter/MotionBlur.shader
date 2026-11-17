@@ -23,5 +23,5 @@ float4 mainImage(VertData v_in) : TARGET
 	prevLum -= currLum;
 	prevLum += max_color;
 	prevLum /= max(max_color, 0.001);
-	return float4(curr.rgb * prevLum, curr.a);
+	return curr * prevLum;
 }
