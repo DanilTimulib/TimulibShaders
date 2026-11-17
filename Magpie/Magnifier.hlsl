@@ -236,6 +236,7 @@ float4 Pass1(float2 pos)
 			float4 magnifiedPixel;
 			if (Filtering == FILTER_LINEAR) {
 				float4 LINEAR = INPUT.SampleLevel(sam1, take_pos, 0);
+				float max_color = max(LINEAR.r, max(LINEAR.g, LINEAR.b));
 				float luma = dot(LINEAR.rgb, float3(0.2126, 0.7152, 0.0722));
 				luma = abs(luma * 2.0 - 1.0);
 				float2 inputPt = GetInputPt();
@@ -250,15 +251,13 @@ float4 Pass1(float2 pos)
 				s += INPUT.SampleLevel(sam1, take_pos + float2(-inputPt.x, -inputPt.y), 0).rgb;
 				float3 sharp = LINEAR.rgb - (s / 8);
 				float sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
-				float4 POINT = INPUT.SampleLevel(sam, take_pos, 0);
-				float max_color = max(POINT.r, max(POINT.g, POINT.b));
 				float2 inputSize = GetInputSize();
 				float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 				float clampSharp = max(0.025 / scale, 0.001);
 				sharplum = clamp(sharplum, -clampSharp, clampSharp);
 				sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
 				sharplum /= max(max_color, 0.001);
-				magnifiedPixel = lerp(LINEAR, POINT * sharplum, amount * (1 - luma));
+				magnifiedPixel = lerp(LINEAR, LINEAR * sharplum, amount * (1 - luma));
 				magnifiedPixel = max(magnifiedPixel, 0);
 			} else {
 				magnifiedPixel = INPUT.SampleLevel(sam, take_pos, 0);
