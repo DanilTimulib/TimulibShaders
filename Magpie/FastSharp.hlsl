@@ -21,10 +21,6 @@ Texture2D OUTPUT;
 //!FILTER LINEAR
 SamplerState sam;
 
-//!SAMPLER
-//!FILTER POINT
-SamplerState sam1;
-
 //!PASS 1
 //!STYLE PS
 //!IN INPUT
