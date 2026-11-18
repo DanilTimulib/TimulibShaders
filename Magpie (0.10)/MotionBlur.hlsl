@@ -60,7 +60,7 @@ float4 Pass2(float2 pos)
 	prevLum -= currLum;
 	prevLum += max_color;
 	prevLum /= max(max_color, 0.001);
-	return curr * prevLum;
+	return float4(curr.rgb * prevLum, curr.a);
 }
 
 //!PASS 3
