@@ -83,7 +83,7 @@ float4 Pass1(float2 pos)
 	bumplum += max_color;
 	bumplum /= max(max_color, 0.001);
 	
-	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2*scale*luma),-c11*max(3*scale,3),c11*max(3*scale,3));
+	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2.2*scale*luma),-c11*max(3.2*scale,3.2),c11*max(3.2*scale,3.2));
 	
 	return float4(max(c11, 0), 1);
 }
