@@ -37,7 +37,7 @@ float4 mainImage(VertData v_in) : TARGET
 	float edge = dot(float2(diff1, diff2), float2(diff1, diff2));
 	float scale = sqrt((uv_size.x * uv_size.y) / 2073600.0);
 
-	float newCol = saturate(pow(max(edge, 0.0), luma) * -Power * 10.0 * scale + max_color);
+	float newCol = saturate(pow(max(edge, 0.0), luma) * -Power * 10.2 * scale + max_color);
 	newCol /= max(max_color, 0.001);
 	return float4(lerp(color, color * newCol, Opacity), 1.0);
 }

@@ -34,7 +34,7 @@ float3 CartoonPass(float4 position : SV_Position, float2 texcoord : TEXCOORD) : 
 	float edge = dot(float2(diff1, diff2), float2(diff1, diff2));
 	float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
 
-	float newCol = saturate(pow(max(edge, 0.0), luma) * -Power * 10.0 * scale + max_color);
+	float newCol = saturate(pow(max(edge, 0.0), luma) * -Power * 10.2 * scale + max_color);
 	newCol /= max(max_color, 0.001);
 	return lerp(color, color * newCol, Opacity);
 }

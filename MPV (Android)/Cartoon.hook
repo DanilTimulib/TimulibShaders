@@ -28,7 +28,7 @@ vec4 hook()
 	float edge = dot(vec2(diff1, diff2), vec2(diff1, diff2));
 	float scale = sqrt((HOOKED_size.x * HOOKED_size.y) / 2073600.0);
 
-	float newCol = clamp(pow(max(edge, 0.0), luma) * -Power * 10.0 * scale + max_color, 0.0, 1.0);
+	float newCol = clamp(pow(max(edge, 0.0), luma) * -Power * 10.2 * scale + max_color, 0.0, 1.0);
 	newCol /= max(max_color, 0.001);
 	return vec4(mix(color, color * vec3(newCol), Opacity), 1.0);
 }

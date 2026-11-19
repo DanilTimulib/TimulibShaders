@@ -55,7 +55,7 @@ float3 Pass1(float2 pos)
 	float2 inputSize = GetInputSize();
 	float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 
-	float newCol = saturate(pow(max(edge, 0), luma) * -Power * 10 * scale + max_color);
+	float newCol = saturate(pow(max(edge, 0), luma) * -Power * 10.2 * scale + max_color);
 	newCol /= max(max_color, 0.001);
 	return lerp(color, color * newCol, Opacity);
 }
