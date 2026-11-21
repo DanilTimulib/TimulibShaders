@@ -37,7 +37,7 @@ float3 PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 	
 	float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
 	
-	float clampSharp = max(0.025 / scale, 0.001);
+	float clampSharp = max(0.026 / scale, 0.001);
 	
 	sharplum = clamp(sharplum, -clampSharp, clampSharp);
 	

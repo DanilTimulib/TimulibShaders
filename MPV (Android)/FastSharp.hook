@@ -1,5 +1,3 @@
-// Created by Danil Timulib
-
 //!HOOK OUTPUT
 //!BIND HOOKED
 //!DESC FastSharp
@@ -35,7 +33,7 @@ vec4 hook() {
     
     float scale = sqrt((HOOKED_size.x * HOOKED_size.y) / 2073600.0);
     
-    float clampSharp = max(0.025 / scale, 0.001);
+    float clampSharp = max(0.026 / scale, 0.001);
     
     sharplum = clamp(sharplum, -clampSharp, clampSharp);
     

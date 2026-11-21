@@ -57,7 +57,7 @@ float4 Pass1(float2 pos)
 	
 	float scale = sqrt((outputSize.x * outputSize.y) / 2073600);
 	
-	float clampSharp = max(0.025 / scale, 0.001);
+	float clampSharp = max(0.026 / scale, 0.001);
 	
 	sharplum = clamp(sharplum, -clampSharp, clampSharp);
 	

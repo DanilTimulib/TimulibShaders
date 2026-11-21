@@ -38,7 +38,7 @@ float4 mainImage(VertData v_in) : TARGET
 	
 	float scale = sqrt((uv_size.x * uv_size.y) / 2073600.0);
 	
-	float clampSharp = max(0.025 / scale, 0.001);
+	float clampSharp = max(0.026 / scale, 0.001);
 	
 	sharplum = clamp(sharplum, -clampSharp, clampSharp);
 	
