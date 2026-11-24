@@ -11,9 +11,11 @@ float3 PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 {	
 	float3 color = tex2Dlod(ReShade::BackBuffer, float4(texcoord, 0.0, 0.0)).rgb;
 	
+	float max_color = max(color.r, max(color.g, color.b));
+	
 	float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
 	
-	float lum = abs(luma * 2.0 - 1.0);
+	luma = abs(luma * 2.0 - 1.0);
 	
 	float2 inputPt = BUFFER_PIXEL_SIZE;
 	
@@ -39,11 +41,11 @@ float3 PS(float4 vpos : SV_Position, float2 texcoord : TexCoord) : SV_Target
 	
 	sharplum = clamp(sharplum, -clampSharp, clampSharp);
 	
-	sharplum = luma + (7.2 * scale * (1.0 + lum) * sharplum);
+	sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
 	
-	sharplum /= max(luma, 0.001);
+	sharplum /= max(max_color, 0.001);
 	
-	color = lerp(color, color * sharplum, amount * (1.0 - lum));
+	color = lerp(color, color * sharplum, amount * (1.0 - luma));
 	
 	return max(color, 0.0);
 }

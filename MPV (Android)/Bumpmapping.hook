@@ -33,9 +33,11 @@ vec3 GetWeight(vec3 dif1)
 vec4 hook() {
     vec3 c11 = HOOKED_tex(HOOKED_pos).rgb;
     
+    float max_color = max(c11.r, max(c11.g, c11.b));
+    
     float luma = dot(c11, vec3(0.2126, 0.7152, 0.0722));
-    float lum = abs(luma * 2.0 - 1.0);
-    lum = mix(0.5, 1.0, lum);
+    luma = abs(luma * 2.0 - 1.0);
+    luma = mix(0.5, 1.0, luma);
     
     vec2 inputPt = HOOKED_pt;
     
@@ -54,10 +56,10 @@ vec4 hook() {
     
     vec3 b11 = (w00*(c00-c22) + w01*(c01-c21) + w10*(c10-c12));
     float bumplum = dot(b11, vec3(0.2126, 0.7152, 0.0722));
-    bumplum += luma;
-    bumplum /= max(luma, 0.001);
+    bumplum += max_color;
+    bumplum /= max(max_color, 0.001);
     
-    c11 = clamp(mix(c11,c11*vec3(bumplum),-EMBOSS*2.2*scale*lum),-c11*max(vec3(3.2*scale),3.2),c11*max(vec3(3.2*scale),3.2));
+    c11 = clamp(mix(c11,c11*vec3(bumplum),-EMBOSS*2.2*scale*luma),-c11*max(vec3(3.2*scale),3.2),c11*max(vec3(3.2*scale),3.2));
     
     return vec4(max(c11, 0.0), 1.0);
 }

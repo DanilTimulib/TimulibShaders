@@ -155,8 +155,9 @@ float4 PS_Magnifier(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET 
 			// Refactor once rectangular feathering works
 			float2 inputPt = BUFFER_PIXEL_SIZE;
 			float4 behind_pixel = tex2Dlod(ReShade::BackBuffer, float4(uv, 0.0, 0.0));
+			float max_color = max(behind_pixel.r, max(behind_pixel.g, behind_pixel.b));
 			float luma = dot(behind_pixel.rgb, float3(0.2126, 0.7152, 0.0722));
-			float lum = abs(luma * 2.0 - 1.0);
+			luma = abs(luma * 2.0 - 1.0);
 			float3 s = 0;
 			s += tex2Dlod(ReShade::BackBuffer, float4(uv + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
 			s += tex2Dlod(ReShade::BackBuffer, float4(uv + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
@@ -171,14 +172,15 @@ float4 PS_Magnifier(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET 
 			float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
 			float clampSharp = max(0.025 / scale, 0.001);
 			sharplum = clamp(sharplum, -clampSharp, clampSharp);
-			sharplum = luma + (7.2 * scale * (1.0 + lum) * sharplum);
-			sharplum /= max(luma, 0.001);	
-			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, all_amount * (1.0 - lum));
+			sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);	
+			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, all_amount * (1.0 - luma));
 			behind_pixel = max(behind_pixel, 0.0);
 			float opacity = (Shape == MODE_CIRCLE ? circle_feathering_amt(CircleFeathering, uv_to_screen(offset), CircleRadius) : 0.0);
 			float4 LINEAR = tex2Dlod(ReShade::BackBuffer, float4(take_pos, 0.0, 0.0));
+			max_color = max(LINEAR.r, max(LINEAR.g, LINEAR.b));
 			luma = dot(LINEAR.rgb, float3(0.2126, 0.7152, 0.0722));
-			lum = abs(luma * 2.0 - 1.0);
+			luma = abs(luma * 2.0 - 1.0);
 			s = 0;
 			s += tex2Dlod(ReShade::BackBuffer, float4(take_pos + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
 			s += tex2Dlod(ReShade::BackBuffer, float4(take_pos + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
@@ -191,16 +193,17 @@ float4 PS_Magnifier(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET 
 			sharp = LINEAR.rgb - (s / 8.0);
 			sharplum = dot(sharp, float3(0.2126, 0.7152, 0.0722));
 			sharplum = clamp(sharplum, -clampSharp, clampSharp);
-			sharplum = luma + (7.2 * scale * (1.0 + lum) * sharplum);
-			sharplum /= max(luma, 0.001);	
-			LINEAR = lerp(LINEAR, LINEAR * sharplum, amount * (1.0 - lum));
+			sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);	
+			LINEAR = lerp(LINEAR, LINEAR * sharplum, amount * (1.0 - luma));
 			return lerp(behind_pixel, lerp(Filtering == FILTER_LINEAR ? max(LINEAR, 0.0) : tex2Dlod(pointBuffer, float4(take_pos, 0.0, 0.0)), behind_pixel, opacity), MagnifierOpacity);
 		}
 	} else {
 		float2 inputPt = BUFFER_PIXEL_SIZE;
 		float4 color = tex2Dlod(ReShade::BackBuffer, float4(uv, 0.0, 0.0));
+		float max_color = max(color.r, max(color.g, color.b));
 		float luma = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
-		float lum = abs(luma * 2.0 - 1.0);
+		luma = abs(luma * 2.0 - 1.0);
 		float3 s = 0;
 		s += tex2Dlod(ReShade::BackBuffer, float4(uv + float2( inputPt.x,  0.0), 0.0, 0.0)).rgb;
 		s += tex2Dlod(ReShade::BackBuffer, float4(uv + float2(-inputPt.x,  0.0), 0.0, 0.0)).rgb;
@@ -215,9 +218,9 @@ float4 PS_Magnifier(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET 
 		float scale = sqrt((BUFFER_WIDTH * BUFFER_HEIGHT) / 2073600.0);
 		float clampSharp = max(0.025 / scale, 0.001);
 		sharplum = clamp(sharplum, -clampSharp, clampSharp);
-		sharplum = luma + (7.2 * scale * (1.0 + lum) * sharplum);
-		sharplum /= max(luma, 0.001);
-		color = lerp(color, color * sharplum, all_amount * (1.0 - lum));
+		sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+		sharplum /= max(max_color, 0.001);
+		color = lerp(color, color * sharplum, all_amount * (1.0 - luma));
 		return max(color, 0.0);
 	}
 }

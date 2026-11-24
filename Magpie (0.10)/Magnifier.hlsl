@@ -189,8 +189,9 @@ float4 Pass1(float2 pos)
 			return float4(0, 0, 0, 1);
 		} else {
 			float4 behind_pixel = INPUT.SampleLevel(sam, pos, 0);
+			float max_color = max(behind_pixel.r, max(behind_pixel.g, behind_pixel.b));
 			float luma = dot(behind_pixel.rgb, float3(0.2126, 0.7152, 0.0722));
-			float lum = abs(luma * 2 - 1);
+			luma = abs(luma * 2 - 1);
 			float2 inputPt = GetInputPt();
 			float3 s = 0;
 			s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  0), 0).rgb;
@@ -207,9 +208,9 @@ float4 Pass1(float2 pos)
 			float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 			float clampSharp = max(0.025 / scale, 0.001);
 			sharplum = clamp(sharplum, -clampSharp, clampSharp);
-			sharplum = luma + (7.2 * scale * (1 + lum) * sharplum);
-			sharplum /= max(luma, 0.001);
-			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, all_amount * (1 - lum));
+			sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+			sharplum /= max(max_color, 0.001);
+			behind_pixel = lerp(behind_pixel, behind_pixel * sharplum, all_amount * (1 - luma));
 			behind_pixel = max(behind_pixel, 0);
 
 			float opacity = 0;
@@ -231,8 +232,9 @@ float4 Pass1(float2 pos)
 			float4 magnifiedPixel;
 			if (Filtering == FILTER_LINEAR) {
 				float4 LINEAR = INPUT.SampleLevel(sam1, take_pos, 0);
+				float max_color = max(LINEAR.r, max(LINEAR.g, LINEAR.b));
 				float luma = dot(LINEAR.rgb, float3(0.2126, 0.7152, 0.0722));
-				float lum = abs(luma * 2.0 - 1.0);
+				luma = abs(luma * 2.0 - 1.0);
 				float2 inputPt = GetInputPt();
 				float3 s = 0;
 				s += INPUT.SampleLevel(sam1, take_pos + float2( inputPt.x,  0), 0).rgb;
@@ -249,9 +251,9 @@ float4 Pass1(float2 pos)
 				float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 				float clampSharp = max(0.025 / scale, 0.001);
 				sharplum = clamp(sharplum, -clampSharp, clampSharp);
-				sharplum = luma + (7.2 * scale * (1 + lum) * sharplum);
-				sharplum /= max(luma, 0.001);
-				magnifiedPixel = lerp(LINEAR, LINEAR * sharplum, amount * (1 - lum));
+				sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+				sharplum /= max(max_color, 0.001);
+				magnifiedPixel = lerp(LINEAR, LINEAR * sharplum, amount * (1 - luma));
 				magnifiedPixel = max(magnifiedPixel, 0);
 			} else {
 				magnifiedPixel = INPUT.SampleLevel(sam, take_pos, 0);
@@ -263,8 +265,9 @@ float4 Pass1(float2 pos)
 	} else {
 		float2 inputPt = GetInputPt();
 		float4 color = INPUT.SampleLevel(sam, pos, 0);
+		float max_color = max(color.r, max(color.g, color.b));
 		float luma = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
-		float lum = abs(luma * 2.0 - 1.0);
+		luma = abs(luma * 2.0 - 1.0);
 		float3 s = 0;
 		s += INPUT.SampleLevel(sam, pos + float2( inputPt.x,  0), 0).rgb;
 		s += INPUT.SampleLevel(sam, pos + float2(-inputPt.x,  0), 0).rgb;
@@ -280,9 +283,9 @@ float4 Pass1(float2 pos)
 		float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 		float clampSharp = max(0.025 / scale, 0.001);
 		sharplum = clamp(sharplum, -clampSharp, clampSharp);
-		sharplum = luma + (7.2 * scale * (1 + lum) * sharplum);
-		sharplum /= max(luma, 0.001);
-		color = lerp(color, color * sharplum, all_amount * (1 - lum));
+		sharplum = max_color + (7.2 * scale * (1 + luma) * sharplum);
+		sharplum /= max(max_color, 0.001);
+		color = lerp(color, color * sharplum, all_amount * (1 - luma));
 		return max(color, 0);
 	}
 }
