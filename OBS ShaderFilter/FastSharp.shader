@@ -12,11 +12,9 @@ float4 mainImage(VertData v_in) : TARGET
 {
 	float3 color = image.Sample(textureSampler, v_in.uv).rgb;
 	
-	float max_color = max(color.r, max(color.g, color.b));
-	
 	float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
 	
-	luma = abs(luma * 2.0 - 1.0);
+	float lum = abs(luma * 2.0 - 1.0);
 	
 	float2 inputPt = rcp(uv_size);
 	
@@ -42,11 +40,11 @@ float4 mainImage(VertData v_in) : TARGET
 	
 	sharplum = clamp(sharplum, -clampSharp, clampSharp);
 	
-	sharplum = max_color + (7.2 * scale * (1.0 + luma) * sharplum);
+	sharplum = luma + (7.2 * scale * (1.0 + lum) * sharplum);
 	
-	sharplum /= max(max_color, 0.001);
+	sharplum /= max(luma, 0.001);
 	
-	color = lerp(color, color * sharplum, amount * (1.0 - luma));
+	color = lerp(color, color * sharplum, amount * (1.0 - lum));
 	
 	return float4(max(color, 0.0), 1.0);
 }

@@ -52,11 +52,9 @@ float3 Pass1(float2 pos)
 {
 	float3 c11 = INPUT.SampleLevel(sam, pos, 0).rgb;
 	
-	float max_color = max(c11.r, max(c11.g, c11.b));
-	
 	float luma = dot(c11, float3(0.2126, 0.7152, 0.0722));
-	luma = abs(luma * 2 - 1);
-	luma = lerp(0.5, 1, luma);
+	float lum = abs(luma * 2 - 1);
+	lum = lerp(0.5, 1, lum);
 	
 	float2 inputPt = GetInputPt();
 	
@@ -76,10 +74,10 @@ float3 Pass1(float2 pos)
 	
 	float3 b11 = (w00*(c00-c22) + w01*(c01-c21) + w10*(c10-c12));
 	float bumplum = dot(b11, float3(0.2126, 0.7152, 0.0722));
-	bumplum += max_color;
-	bumplum /= max(max_color, 0.001);
+	bumplum += luma;
+	bumplum /= max(luma, 0.001);
 	
-	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2.2*scale*luma),-c11*max(3.2*scale,3.2),c11*max(3.2*scale,3.2));
+	c11 = clamp(lerp(c11,c11*bumplum,-EMBOSS*2.2*scale*lum),-c11*max(3.2*scale,3.2),c11*max(3.2*scale,3.2));
 	
 	return max(c11, 0);
 }
