@@ -29,7 +29,7 @@ uniform float EMBOSS <
 
 float3 GetWeight(float3 dif1)
 {
-	return lerp(float3(1.0,1.0,1.0), 0.7*dif1 + 0.3, 0.75);
+	return lerp(float3(1.0,1.0,1.0), 0.7*dif1 + 0.3, 0.72);
 }
 
 float4 mainImage(VertData v_in) : TARGET
