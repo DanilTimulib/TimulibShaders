@@ -11,6 +11,10 @@ float3 PS(float4 pos : SV_Position, float2 texcoord : TexCoord ) : SV_Target
 	
 	color = pow(max(color, 0.0), 3.08);
 	
+	float3 orig = color;
+	
+	float max_color = max(color.r, max(color.g, color.b));
+	
 	float ACES_A = 2.51;
 	float ACES_B = (luma < 0.5) ? lerp(0.12, -0.06, luma) : 0.03;
 	float ACES_C = 2.43;
@@ -18,8 +22,17 @@ float3 PS(float4 pos : SV_Position, float2 texcoord : TexCoord ) : SV_Target
 	float ACES_E = 0.14;
 	
 	color = saturate((color*(ACES_A*color+ACES_B))/(color*(ACES_C*color+ACES_D)+ACES_E));
+	luma = dot(color, float3(0.2126, 0.7152, 0.0722));
+	float3 chroma = color - luma;
 	
-	color = pow(max(color, 0.0), rcp(2.2));
+	float3 newCol = saturate((orig*(ACES_A*orig+ACES_B))/(orig*(ACES_C*orig+ACES_D)+ACES_E));
+	newCol -= orig;
+	newCol += max_color;
+	newCol /= max(max_color, 0.001);
+	newCol *= orig;
+	luma = dot(newCol, float3(0.2126, 0.7152, 0.0722));
+	
+	color = pow(max(luma + chroma, 0.0), rcp(2.2));
 	
 	return max(color, 0.0);
 }
