@@ -1,0 +1,27 @@
+// Create by Danil Timulib
+// ACES by Krzysztof Narkowicz https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+
+//!HOOK MAIN
+//!BIND HOOKED
+//!DESC FakeHDR
+
+vec4 hook()
+{
+	vec3 color = HOOKED_tex(HOOKED_pos).rgb;
+	
+	float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+	
+	color = pow(max(color, 0.0), vec3(3.08));
+	
+	float ACES_A = 2.51;
+	float ACES_B = (luma < 0.5) ? mix(0.12, -0.06, luma) : 0.03;
+	float ACES_C = 2.43;
+	float ACES_D = 0.59;
+	float ACES_E = 0.14;
+	
+	color = clamp((color*(vec3(ACES_A)*color+vec3(ACES_B)))/(color*(vec3(ACES_C)*color+vec3(ACES_D))+vec3(ACES_E)),0.0,1.0);
+	
+	color = pow(max(color, 0.0), vec3(1.0/2.2));
+	
+	return vec4(max(color, 0.0), 1.0);
+}
