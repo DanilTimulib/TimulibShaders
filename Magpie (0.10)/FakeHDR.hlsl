@@ -35,17 +35,12 @@ float3 Pass1(float2 pos)
 	float ACES_E = 0.14;
 	
 	color = saturate((color*(ACES_A*color+ACES_B))/(color*(ACES_C*color+ACES_D)+ACES_E));
-	luma = dot(color, float3(0.2126, 0.7152, 0.0722));
-	float3 chroma = color - luma;
+	color -= orig;
+	color += max_color;
+	color /= max(max_color, 0.001);
+	color *= orig;
 	
-	float3 newCol = saturate((orig*(ACES_A*orig+ACES_B))/(orig*(ACES_C*orig+ACES_D)+ACES_E));
-	newCol -= orig;
-	newCol += max_color;
-	newCol /= max(max_color, 0.001);
-	newCol *= orig;
-	luma = dot(newCol, float3(0.2126, 0.7152, 0.0722));
-	
-	color = pow(max(luma + chroma, 0.0), rcp(2.2));
+	color = pow(max(color, 0.0), rcp(2.2));
 	
 	return max(color, 0.0);
 }

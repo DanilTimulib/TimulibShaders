@@ -24,17 +24,12 @@ vec4 hook()
 	float ACES_E = 0.14;
 	
 	color = clamp((color*(vec3(ACES_A)*color+vec3(ACES_B)))/(color*(vec3(ACES_C)*color+vec3(ACES_D))+vec3(ACES_E)),0.0,1.0);
-	luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-	vec3 chroma = color - vec3(luma);
+	color -= orig;
+	color += vec3(max_color);
+	color /= max(vec3(max_color), 0.001);
+	color *= orig;
 	
-	vec3 newCol = clamp((orig*(vec3(ACES_A)*orig+vec3(ACES_B)))/(orig*(vec3(ACES_C)*orig+vec3(ACES_D))+vec3(ACES_E)),0.0,1.0);
-	newCol -= orig;
-	newCol += vec3(max_color);
-	newCol /= max(vec3(max_color), 0.001);
-	newCol *= orig;
-	luma = dot(newCol, vec3(0.2126, 0.7152, 0.0722));
-	
-	color = pow(max(vec3(luma) + chroma, 0.0), vec3(1.0/2.2));
+	color = pow(max(color, 0.0), vec3(1.0/2.2));
 	
 	return vec4(max(color, 0.0), 1.0);
 }
