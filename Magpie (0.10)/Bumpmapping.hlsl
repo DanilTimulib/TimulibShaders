@@ -70,9 +70,9 @@ float3 Pass1(float2 pos)
 	float2 inputSize = GetInputSize();
 	float scale = sqrt((inputSize.x * inputSize.y) / 2073600);
 	
-	float3 w00 = GetWeight(saturate(2.25*abs(c00-c22)/(c00+c22+0.25)));
-	float3 w01 = GetWeight(saturate(2.25*abs(c01-c21)/(c01+c21+0.25)));
-	float3 w10 = GetWeight(saturate(2.25*abs(c10-c12)/(c10+c12+0.25)));
+	float3 w00 = GetWeight(saturate(2.25*abs(c00-c22)/max(c00+c22,0.25)));
+	float3 w01 = GetWeight(saturate(2.25*abs(c01-c21)/max(c01+c21,0.25)));
+	float3 w10 = GetWeight(saturate(2.25*abs(c10-c12)/max(c10+c12,0.25)));
 	
 	float3 b11 = (w00*(c00-c22) + w01*(c01-c21) + w10*(c10-c12));
 	float bumplum = dot(b11, float3(0.2126, 0.7152, 0.0722));

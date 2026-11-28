@@ -321,7 +321,7 @@ float4 Pass10(float2 texcoord) {
     luma = abs(luma * 2.0 - 1.0);
     luma = lerp(0.5, 1.0, luma);
 
-    float avgLumaAdjusted = lerp (avgLuma, 1.4 * avgLuma / (0.4 + avgLuma), fAdp_Equilibrium);
+    float avgLumaAdjusted = lerp(avgLuma, 1.4 * avgLuma / max(avgLuma, 0.4), fAdp_Equilibrium);
     float delta = 0;
 
     float curve = fAdp_Strength * 20.0 * luma * pow(abs(avgLumaAdjusted - 0.5), 4.0);

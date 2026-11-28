@@ -59,9 +59,9 @@ float3 BUMP(float4 pos : SV_Position, float2 uv : TexCoord) : SV_Target
 	luma = abs(luma * 2.0 - 1.0);
 	luma = lerp(0.5, 1.0, luma);
 
-	float3 w00 = GetWeight(saturate(2.25*abs(c00-c22)/(c00+c22+0.25)));
-	float3 w01 = GetWeight(saturate(2.25*abs(c01-c21)/(c01+c21+0.25)));
-	float3 w10 = GetWeight(saturate(2.25*abs(c10-c12)/(c10+c12+0.25)));
+	float3 w00 = GetWeight(saturate(2.25*abs(c00-c22)/max(c00+c22,0.25)));
+	float3 w01 = GetWeight(saturate(2.25*abs(c01-c21)/max(c01+c21,0.25)));
+	float3 w10 = GetWeight(saturate(2.25*abs(c10-c12)/max(c10+c12,0.25)));
 	
 	float3 b11 = (w00*(c00-c22) + w01*(c01-c21) + w10*(c10-c12));
 	float bumplum = dot(b11, float3(0.2126, 0.7152, 0.0722));
